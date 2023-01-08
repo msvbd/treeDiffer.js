@@ -4,6 +4,14 @@
  * Released under the MIT license
  */
 
+import { TreeNode } from "./treeDiffer.TreeNode";
+
+interface TreeInterface {
+    root: TreeNode | null;
+    nodeClass: any;
+    orderedNodes: TreeNode[];
+    keyRoots: number[];
+}
 /**
  * Tree
  *
@@ -19,9 +27,14 @@
  * @param {Function} nodeClass Concrete subclass of treeDiffer.TreeNode
  * @param {Object} config Config options for nodeClass
  */
-export class Tree {
-    constructor(node, nodeClass, config) {
-        this.root = null;
+export class Tree implements TreeInterface {
+
+    root: TreeNode = new TreeNode({});
+    nodeClass: any;
+    orderedNodes: TreeNode[];
+    keyRoots: number[];
+
+    constructor(node : object, nodeClass: TreeInterface, config: object) {
         this.nodeClass = nodeClass;
         this.orderedNodes = [];
         this.keyRoots = [];
@@ -36,9 +49,9 @@ export class Tree {
      * @param {Object} node Root node in original tree
      * @param {Object} config Config options for nodeClass
      */
-    findKeyRootsAndOrderedNodes(node, config) {
-        let leftmost,
-            leftmostsToKeyRoots = {},
+    findKeyRootsAndOrderedNodes(node: object, config: object) {
+        let leftmost: number,
+            leftmostsToKeyRoots : number[] = [],
             tree = this;
 
         /**
@@ -48,7 +61,7 @@ export class Tree {
          * @param {treeDiffer.TreeNode} treeNode Node currently being checked
          * @param {Array} orderedNodes Array to be populated with nodes in order
          */
-        function postOrderNodes(treeNode, orderedNodes) {
+        function postOrderNodes(treeNode : TreeNode, orderedNodes : TreeNode[]) {
             let i,
                 ilen,
                 childNode,
@@ -78,13 +91,12 @@ export class Tree {
         }
 
         // Store the nodes in order
-        // eslint-disable-next-line new-cap
         this.root = new tree.nodeClass(node, config);
         this.orderedNodes = [];
         postOrderNodes(this.root, this.orderedNodes);
 
         // Store the key roots in order of node index
-        for (leftmost in leftmostsToKeyRoots) {
+        for (leftmost of leftmostsToKeyRoots) {
             this.keyRoots.push(leftmostsToKeyRoots[leftmost]);
         }
         this.keyRoots.sort(function (a, b) {
@@ -98,10 +110,10 @@ export class Tree {
 	 * @param {treeDiffer.TreeNode} node Node whose descendants to find
 	 * @return {Array} Descendants of the node
 	 */
-	getNodeDescendants(node) {
-		let descendants = [];
+	getNodeDescendants(node: TreeNode) {
+		let descendants : TreeNode[] = [];
 
-		function addDescendants(parentNode) {
+		function addDescendants(parentNode : TreeNode) : void {
 			let i, ilen, childNode;
 			for (i = 0, ilen = parentNode.children.length; i < ilen; i++) {
 				childNode = parentNode.children[i];

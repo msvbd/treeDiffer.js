@@ -16,7 +16,14 @@
  * @param {Object} node Object representing a node to be wrapped
  */
 export class TreeNode {
-	constructor(node) {
+
+    node: object;
+    children: TreeNode[];
+    parent: TreeNode | null = null;
+    index: number = 0;
+    leftmost: number = 0;
+
+	constructor(node : object) {
 		/**
 		 * @property {Object} node Object representing the wrapped node
 		 */
@@ -30,12 +37,12 @@ export class TreeNode {
 		/**
 		 * @property {number} index Index in node list ordered by deepest-first then document order
 		 */
-		this.index = null;
+		this.index = 0;
 
 		/**
 		 * @property {number} leftmost Leftmost of this node; see treeDiffer.Tree
 		 */
-		this.leftmost = null;
+		this.leftmost = 0;
 	}
 
 	/**
@@ -43,7 +50,7 @@ export class TreeNode {
 	 *
 	 * @param {treeDiffer.TreeNode} child
 	 */
-	addChild(child) {
+	addChild(child : TreeNode) {
 		this.children.push(child);
 		child.parent = this;
 	}
@@ -56,8 +63,8 @@ export class TreeNode {
 	 * @param {treeDiffer.TreeNode} other The other TreeNode
 	 * @return {boolean} True if equal
 	 */
-	isEqual() {
-		return null;
+	isEqual(...args : any[]) : boolean {
+		return false;
 	}
 
 	/**
@@ -67,7 +74,7 @@ export class TreeNode {
 	 * @method
 	 * @return {Object[]} Children of the wrapped node
 	 */
-	getOriginalNodeChildren() {
-		return null;
+	getOriginalNodeChildren() : TreeNode[] {
+		return [];
 	}
 }

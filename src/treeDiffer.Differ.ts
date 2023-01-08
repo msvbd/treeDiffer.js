@@ -4,6 +4,34 @@
  * Released under the MIT license
  */
 
+import { Tree } from "./treeDiffer.Tree";
+import { TreeNode } from "./treeDiffer.TreeNode";
+
+interface transactionsInterface {
+    [key: number]: {};
+    null: {};
+}
+
+interface transactionToIndexInterface {
+    [key: number]: transactionsInterface;
+}
+
+// Temporary, changing store of transactions
+// transactions = {
+//     null: {
+//         null: [],
+//     },
+// };
+// transactions[i] = {
+//     null: [],
+// };
+// transactions[null][j] = [];
+// transactions[i][j] = [];
+type transactionStoreInterface = {
+    [key: number]: transactionsInterface;
+    null: transactionsInterface;
+};
+
 /* eslint-disable dot-notation */
 // We use [ 'null' ] as an index, but for consistencty with
 // variable indicies [ i ][ j ] we prefer not to use dot notation
@@ -23,13 +51,23 @@
  * @param {number} [timeout=1000] Timeout after which to stop diffing
  */
 export class Differ {
-    constructor(tree1, tree2, timeout) {
-        let i,
-            ilen,
-            j,
-            jlen,
-            transactions,
-            transactionIndex = 0;
+    endTime: number;
+    tree1: Tree;
+    tree2: Tree;
+    insertCost: number;
+    removeCost: number;
+    changeCost: number;
+    transactions: transactionsInterface;
+    indexToTransaction: {}[];
+    transactionToIndex: transactionToIndexInterface;
+
+    constructor(tree1: Tree, tree2: Tree, timeout: number) {
+        let i: number,
+            ilen: number,
+            j: number,
+            jlen: number,
+            transactions: transactionStoreInterface,
+            transactionIndex: number = 0;
 
         this.endTime = Date.now() + (timeout || 1000);
 
@@ -102,7 +140,7 @@ export class Differ {
      *
      * @param {Object} transactions Temporary store of transactions between trees
      */
-    populateTransactions(transactions) {
+    populateTransactions(transactions: transactionStoreInterface) {
         let i,
             ilen,
             j,
@@ -115,7 +153,7 @@ export class Differ {
             keyRoot2,
             differ = this;
 
-        function getTransactionFromIndex(index) {
+        function getTransactionFromIndex(index: number) {
             return differ.indexToTransaction[index];
         }
 
@@ -169,7 +207,7 @@ export class Differ {
      * @param {treeDiffer.TreeNode} node2 Node from the second tree]
      * @return {number} Cost of the transaction
      */
-    getNodeDistance(node1, node2) {
+    getNodeDistance(node1: TreeNode, node2: TreeNode) {
         if (node1 === null && node2 === null) {
             return 0;
         }
@@ -193,7 +231,11 @@ export class Differ {
      * @param {treeDiffer.TreeNode} keyRoot2 A keyroot from the second tree
      * @param {Object} transactions Temporary store of transactions between trees
      */
-    findMinimumTransactions(keyRoot1, keyRoot2, transactions) {
+    findMinimumTransactions(
+        keyRoot1: TreeNode,
+        keyRoot2: TreeNode,
+        transactions: transactionStoreInterface
+    ) {
         let i,
             j,
             iMinus1,
@@ -206,7 +248,11 @@ export class Differ {
             orderedNode1,
             orderedNode2;
 
-        function getLowestCost(removeCost, insertCost, changeCost) {
+        function getLowestCost(
+            removeCost: number,
+            insertCost: number,
+            changeCost: number
+        ) {
             // This used to be written as:
             //  transaction = costs.indexOf( Math.min.apply( null, costs ) )
             // but expanding into two simple comparisons makes it much faster.
@@ -324,7 +370,11 @@ export class Differ {
      * @param {number} newTreeLength Number of nodes in the second tree
      * @return {Object} Corresponding nodes
      */
-    getCorrespondingNodes(transactions, oldTreeLength, newTreeLength) {
+    getCorrespondingNodes(
+        transactions,
+        oldTreeLength: number,
+        newTreeLength: number
+    ) {
         let i,
             j,
             rem,
