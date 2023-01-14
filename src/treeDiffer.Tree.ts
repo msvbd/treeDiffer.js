@@ -7,7 +7,7 @@
 import { TreeNode } from "./treeDiffer.TreeNode";
 
 interface TreeInterface {
-    root: TreeNode | null;
+    root: TreeNode;
     nodeClass: any;
     orderedNodes: TreeNode[];
     keyRoots: number[];
