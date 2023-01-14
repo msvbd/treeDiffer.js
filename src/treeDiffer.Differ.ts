@@ -8,12 +8,21 @@ import { Tree } from "./treeDiffer.Tree";
 import { TreeNode } from "./treeDiffer.TreeNode";
 
 interface transactionsInterface {
-    [key: number]: {};
-    null: {};
+    [key: number]: {
+        [key: number]: (number | string)[];
+        null: (number | string)[];
+    };
+    null?: {
+        [key: number]: (number | string)[];
+        null: (number | string)[];
+    };
 }
+
+type indexToTransactionInterface = [string | number, string | number][];
 
 interface transactionToIndexInterface {
     [key: number]: transactionsInterface;
+    null: transactionsInterface;
 }
 
 // Temporary, changing store of transactions
@@ -27,9 +36,15 @@ interface transactionToIndexInterface {
 // };
 // transactions[null][j] = [];
 // transactions[i][j] = [];
+// transactions[ii]["null"] = iNulls.slice();
+// transactions["null"][jj] = jNulls.slice();
+type transactionType = {
+    [key: number]: (number | string)[];
+    null?: (number | string)[];
+}
 type transactionStoreInterface = {
-    [key: number]: transactionsInterface;
-    null: transactionsInterface;
+    [key: number]: transactionType;
+    null?: transactionType;
 };
 
 /* eslint-disable dot-notation */
@@ -58,7 +73,7 @@ export class Differ {
     removeCost: number;
     changeCost: number;
     transactions: transactionsInterface;
-    indexToTransaction: {}[];
+    indexToTransaction: indexToTransactionInterface;
     transactionToIndex: transactionToIndexInterface;
 
     constructor(tree1: Tree, tree2: Tree, timeout: number) {
@@ -80,8 +95,8 @@ export class Differ {
 
         // Temporary, changing store of transactions
         transactions = {
-            null: {
-                null: [],
+            "null": {
+                "null": [],
             },
         };
 
@@ -89,18 +104,20 @@ export class Differ {
         // transactions to get from the sub-tree rooted at node x (in tree1) to the sub-tree
         // rooted at node y (in tree2).
         this.transactions = {
-            null: {},
+            "null": {
+                "null": [],
+            },
         };
 
         // All possible transactions
         this.indexToTransaction = [];
-        this.indexToTransaction.push([null, null]);
+        this.indexToTransaction.push(["null", "null"]);
 
         // Indices for each transaction, to avoid high performance cost of creating the
         // transactions multiple times
         this.transactionToIndex = {
-            null: {
-                null: 0,
+            "null": {
+                "null": 0,
             },
         };
         transactionIndex += 1;
@@ -114,22 +131,24 @@ export class Differ {
                 null: transactionIndex,
             };
             transactionIndex += 1;
-            this.indexToTransaction.push([i, null]);
+            this.indexToTransaction.push([i, "null"]);
 
             for (j = 0, jlen = this.tree2.orderedNodes.length; j < jlen; j++) {
-                transactions[null][j] = [];
+                transactions["null"]![j] = [];
                 transactions[i][j] = [];
 
-                this.transactionToIndex[null][j] = transactionIndex;
+                this.transactionToIndex["null"][j] = transactionIndex;
                 transactionIndex += 1;
-                this.indexToTransaction.push([null, j]);
+                this.indexToTransaction.push(["null", j]);
 
                 this.transactionToIndex[i][j] = transactionIndex;
                 transactionIndex += 1;
                 this.indexToTransaction.push([i, j]);
             }
 
-            this.transactions[i] = {};
+            this.transactions[i] = {
+                null: [],
+            };
         }
 
         this.populateTransactions(transactions);
@@ -141,16 +160,16 @@ export class Differ {
      * @param {Object} transactions Temporary store of transactions between trees
      */
     populateTransactions(transactions: transactionStoreInterface) {
-        let i,
-            ilen,
-            j,
-            jlen,
-            iNulls,
-            jNulls,
-            ii,
-            jj,
-            keyRoot1,
-            keyRoot2,
+        let i: number,
+            ilen: number,
+            j: number,
+            jlen: number,
+            iNulls: number[],
+            jNulls: number[],
+            ii: number,
+            jj: number,
+            keyRoot1: TreeNode,
+            keyRoot2: TreeNode,
             differ = this;
 
         function getTransactionFromIndex(index: number) {
@@ -162,8 +181,8 @@ export class Differ {
             keyRoot1 = this.tree1.orderedNodes[this.tree1.keyRoots[i]];
             iNulls = [];
             for (ii = keyRoot1.leftmost; ii < keyRoot1.index + 1; ii++) {
-                iNulls.push(this.transactionToIndex[ii][null]);
-                transactions[ii][null] = iNulls.slice();
+                iNulls.push(this.transactionToIndex[ii]["null"]);
+                transactions[ii]["null"] = iNulls.slice();
             }
 
             for (j = 0, jlen = this.tree2.keyRoots.length; j < jlen; j++) {
@@ -171,15 +190,19 @@ export class Differ {
                 keyRoot2 = this.tree2.orderedNodes[this.tree2.keyRoots[j]];
                 jNulls = [];
                 for (jj = keyRoot2.leftmost; jj < keyRoot2.index + 1; jj++) {
-                    jNulls.push(this.transactionToIndex[null][jj]);
-                    transactions[null][jj] = jNulls.slice();
+                    jNulls.push(this.transactionToIndex["null"][jj]);
+                    transactions["null"]![jj] = jNulls.slice();
                 }
 
                 // Get the diff
                 this.findMinimumTransactions(keyRoot1, keyRoot2, transactions);
 
                 if (Date.now() > this.endTime) {
-                    this.transactions = null;
+                    this.transactions = {
+                        null: {
+                            null: [],
+                        },
+                    };
                     return;
                 }
             }
@@ -207,7 +230,7 @@ export class Differ {
      * @param {treeDiffer.TreeNode} node2 Node from the second tree]
      * @return {number} Cost of the transaction
      */
-    getNodeDistance(node1: TreeNode, node2: TreeNode) {
+    getNodeDistance(node1: TreeNode | null, node2: TreeNode | null) {
         if (node1 === null && node2 === null) {
             return 0;
         }
@@ -236,17 +259,17 @@ export class Differ {
         keyRoot2: TreeNode,
         transactions: transactionStoreInterface
     ) {
-        let i,
-            j,
-            iMinus1,
-            jMinus1,
-            nodeDistance,
-            transaction,
-            remove,
-            insert,
-            change,
-            orderedNode1,
-            orderedNode2;
+        let i: number,
+            j: number,
+            iMinus1: number | null,
+            jMinus1: number | null,
+            nodeDistance: number,
+            transaction: number,
+            remove: (number | string)[],
+            insert: (number | string)[],
+            change: (number | string)[],
+            orderedNode1: TreeNode,
+            orderedNode2: TreeNode;
 
         function getLowestCost(
             removeCost: number,
@@ -281,9 +304,9 @@ export class Differ {
                     orderedNode2.leftmost === keyRoot2.leftmost
                 ) {
                     // Previous transactions, leading up to a remove, insert or change
-                    remove = transactions[iMinus1][j];
-                    insert = transactions[i][jMinus1];
-                    change = transactions[iMinus1][jMinus1];
+                    remove = transactions[iMinus1 ?? "null"]![j];
+                    insert = transactions[i][jMinus1 ?? "null"]!;
+                    change = transactions[iMinus1 ?? "null"]![jMinus1 ?? "null"]!;
 
                     nodeDistance = this.getNodeDistance(
                         orderedNode1,
@@ -321,18 +344,18 @@ export class Differ {
                     this.transactions[i][j] = transactions[i][j].slice();
                 } else {
                     // Previous transactions, leading up to a remove, insert or change
-                    remove = transactions[iMinus1][j];
-                    insert = transactions[i][jMinus1];
+                    remove = transactions[iMinus1 ?? "null"]![j];
+                    insert = transactions[i][jMinus1 ?? "null"]!;
                     change =
                         transactions[
                             orderedNode1.leftmost - 1 < keyRoot1.leftmost
-                                ? null
+                                ? "null"
                                 : orderedNode1.leftmost - 1
-                        ][
+                        ]![
                             orderedNode2.leftmost - 1 < keyRoot2.leftmost
-                                ? null
+                                ? "null"
                                 : orderedNode2.leftmost - 1
-                        ];
+                        ]!;
 
                     transaction = getLowestCost(
                         remove.length + this.removeCost,
@@ -370,74 +393,74 @@ export class Differ {
      * @param {number} newTreeLength Number of nodes in the second tree
      * @return {Object} Corresponding nodes
      */
-    getCorrespondingNodes(
-        transactions,
-        oldTreeLength: number,
-        newTreeLength: number
-    ) {
-        let i,
-            j,
-            rem,
-            ins,
-            oldToNew = {},
-            newToOld = {},
-            remove = [],
-            insert = [],
-            change = {},
-            ilen = Math.max(oldTreeLength, newTreeLength),
-            jlen = ilen;
+    // getCorrespondingNodes(
+    //     transactions: transactionStoreInterface,
+    //     oldTreeLength: number,
+    //     newTreeLength: number
+    // ) {
+    //     let i: number,
+    //         j: number,
+    //         rem: number[],
+    //         ins: number[],
+    //         oldToNew: { [key: number]: number } = {},
+    //         newToOld: { [key: number]: number } = {},
+    //         remove = [],
+    //         insert = [],
+    //         change = {},
+    //         ilen = Math.max(oldTreeLength, newTreeLength),
+    //         jlen = ilen;
 
-        for (i = 0; i < transactions.length; i++) {
-            if (transactions[i][0] === null) {
-                insert.push(transactions[i][1]);
-            } else if (transactions[i][1] === null) {
-                remove.push(transactions[i][0]);
-            } else {
-                oldToNew[transactions[i][0]] = transactions[i][1];
-                newToOld[transactions[i][1]] = transactions[i][0];
-                change[transactions[i][0]] = transactions[i][1];
-            }
-        }
+    //     for (i = 0; i < transactions.length; i++) {
+    //         if (transactions[i][0] === null) {
+    //             insert.push(transactions[i][1]);
+    //         } else if (transactions[i][1] === null) {
+    //             remove.push(transactions[i][0]);
+    //         } else {
+    //             oldToNew[transactions[i][0]] = transactions[i][1];
+    //             newToOld[transactions[i][1]] = transactions[i][0];
+    //             change[transactions[i][0]] = transactions[i][1];
+    //         }
+    //     }
 
-        rem = remove.slice();
-        ins = insert.slice();
+    //     rem = remove.slice();
+    //     ins = insert.slice();
 
-        remove.sort(function (a, b) {
-            return a - b;
-        });
-        insert.sort(function (a, b) {
-            return a - b;
-        });
+    //     remove.sort(function (a, b) {
+    //         return a - b;
+    //     });
+    //     insert.sort(function (a, b) {
+    //         return a - b;
+    //     });
 
-        for (i = 0, j = 0; i < ilen && j < jlen; i++, j++) {
-            if (i === remove[0]) {
-                // Old node is a remove
-                remove.shift();
-                j--;
-            } else if (j === insert[0]) {
-                // New node is an insert
-                insert.shift();
-                i--;
-            } else if (!(i in oldToNew) && !(j in newToOld)) {
-                // Neither is changed, so they must correspond
-                // NB Moves don't exist to the tree differ
-                oldToNew[i] = j;
-                newToOld[j] = i;
-            } else if (!(i in oldToNew)) {
-                // Old node is unchanged, new node is changed
-                i--;
-            } else if (!(j in newToOld)) {
-                // New node is unchanged, old node is changed
-                j--;
-            }
-        }
+    //     for (i = 0, j = 0; i < ilen && j < jlen; i++, j++) {
+    //         if (i === remove[0]) {
+    //             // Old node is a remove
+    //             remove.shift();
+    //             j--;
+    //         } else if (j === insert[0]) {
+    //             // New node is an insert
+    //             insert.shift();
+    //             i--;
+    //         } else if (!(i in oldToNew) && !(j in newToOld)) {
+    //             // Neither is changed, so they must correspond
+    //             // NB Moves don't exist to the tree differ
+    //             oldToNew[i] = j;
+    //             newToOld[j] = i;
+    //         } else if (!(i in oldToNew)) {
+    //             // Old node is unchanged, new node is changed
+    //             i--;
+    //         } else if (!(j in newToOld)) {
+    //             // New node is unchanged, old node is changed
+    //             j--;
+    //         }
+    //     }
 
-        return {
-            oldToNew: oldToNew,
-            newToOld: newToOld,
-            remove: rem,
-            insert: ins,
-            change: change,
-        };
-    }
+    //     return {
+    //         oldToNew: oldToNew,
+    //         newToOld: newToOld,
+    //         remove: rem,
+    //         insert: ins,
+    //         change: change,
+    //     };
+    // }
 }
