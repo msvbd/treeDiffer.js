@@ -7,45 +7,46 @@
 import { Tree } from "./treeDiffer.Tree";
 import { TreeNode } from "./treeDiffer.TreeNode";
 
-interface transactionsInterface {
+type Transaction =
+    | [number | null, number]
+    | [number, number | null]
+    | [number | number]
+    | [null, null];
+
+type Transactions = {
     [key: number]: {
-        [key: number]: (number | string)[];
-        null: (number | string)[];
+        [key: number]: Transaction[];
+        null?: Transaction[];
     };
-    null?: {
-        [key: number]: (number | string)[];
-        null: (number | string)[];
+    null: {
+        [key: number]: Transaction[];
+        null?: Transaction[];
     };
-}
-
-type indexToTransactionInterface = [string | number, string | number][];
-
-interface transactionToIndexInterface {
-    [key: number]: transactionsInterface;
-    null: transactionsInterface;
-}
-
-// Temporary, changing store of transactions
-// transactions = {
-//     null: {
-//         null: [],
-//     },
-// };
-// transactions[i] = {
-//     null: [],
-// };
-// transactions[null][j] = [];
-// transactions[i][j] = [];
-// transactions[ii]["null"] = iNulls.slice();
-// transactions["null"][jj] = jNulls.slice();
-type transactionType = {
-    [key: number]: (number | string)[];
-    null?: (number | string)[];
-}
-type transactionStoreInterface = {
-    [key: number]: transactionType;
-    null?: transactionType;
 };
+
+type TransactionsIndex = {
+    [key: number]: {
+        [key: number]: number[];
+        null?: number[];
+    };
+    null: {
+        [key: number]: number[];
+        null?: number[];
+    };
+};
+
+type IndexToTransaction = Transaction[];
+
+interface TransactionToIndex {
+    [key: number]: {
+        [key: number]: number;
+        null?: number;
+    };
+    null: {
+        [key: number]: number;
+        null?: number;
+    };
+}
 
 /* eslint-disable dot-notation */
 // We use [ 'null' ] as an index, but for consistencty with
@@ -72,16 +73,17 @@ export class Differ {
     insertCost: number;
     removeCost: number;
     changeCost: number;
-    transactions: transactionsInterface;
-    indexToTransaction: indexToTransactionInterface;
-    transactionToIndex: transactionToIndexInterface;
+    transactionsIndex: TransactionsIndex;
+    transactions: Transactions;
+    indexToTransaction: IndexToTransaction;
+    transactionToIndex: TransactionToIndex;
 
     constructor(tree1: Tree, tree2: Tree, timeout: number) {
         let i: number,
             ilen: number,
             j: number,
             jlen: number,
-            transactions: transactionStoreInterface,
+            transactions: TransactionsIndex,
             transactionIndex: number = 0;
 
         this.endTime = Date.now() + (timeout || 1000);
@@ -95,29 +97,34 @@ export class Differ {
 
         // Temporary, changing store of transactions
         transactions = {
-            "null": {
-                "null": [],
+            null: {
+                null: [],
             },
         };
 
         // Permanent store of transactions such that transactions[x][y] is the minimum
         // transactions to get from the sub-tree rooted at node x (in tree1) to the sub-tree
         // rooted at node y (in tree2).
+        this.transactionsIndex = {
+            null: {
+                null: [],
+            },
+        };
         this.transactions = {
-            "null": {
-                "null": [],
+            null: {
+                null: [],
             },
         };
 
         // All possible transactions
         this.indexToTransaction = [];
-        this.indexToTransaction.push(["null", "null"]);
+        this.indexToTransaction.push([null, null]);
 
         // Indices for each transaction, to avoid high performance cost of creating the
         // transactions multiple times
         this.transactionToIndex = {
-            "null": {
-                "null": 0,
+            null: {
+                null: 0,
             },
         };
         transactionIndex += 1;
@@ -131,35 +138,34 @@ export class Differ {
                 null: transactionIndex,
             };
             transactionIndex += 1;
-            this.indexToTransaction.push([i, "null"]);
+            this.indexToTransaction.push([i, null]);
 
             for (j = 0, jlen = this.tree2.orderedNodes.length; j < jlen; j++) {
-                transactions["null"]![j] = [];
+                transactions["null"][j] = [];
                 transactions[i][j] = [];
 
                 this.transactionToIndex["null"][j] = transactionIndex;
                 transactionIndex += 1;
-                this.indexToTransaction.push(["null", j]);
+                this.indexToTransaction.push([null, j]);
 
                 this.transactionToIndex[i][j] = transactionIndex;
                 transactionIndex += 1;
                 this.indexToTransaction.push([i, j]);
             }
 
-            this.transactions[i] = {
-                null: [],
-            };
+            this.transactionsIndex[i] = {};
+            this.transactions[i] = {};
         }
 
         this.populateTransactions(transactions);
     }
 
     /**
-     * Populate this.transactions with minimum transactions between all possible trees
+     * Populate this.transactionsIndex with minimum transactions between all possible trees
      *
      * @param {Object} transactions Temporary store of transactions between trees
      */
-    populateTransactions(transactions: transactionStoreInterface) {
+    populateTransactions(transactions: TransactionsIndex) {
         let i: number,
             ilen: number,
             j: number,
@@ -172,7 +178,7 @@ export class Differ {
             keyRoot2: TreeNode,
             differ = this;
 
-        function getTransactionFromIndex(index: number) {
+        function getTransactionFromIndex(index: number): Transaction {
             return differ.indexToTransaction[index];
         }
 
@@ -191,14 +197,14 @@ export class Differ {
                 jNulls = [];
                 for (jj = keyRoot2.leftmost; jj < keyRoot2.index + 1; jj++) {
                     jNulls.push(this.transactionToIndex["null"][jj]);
-                    transactions["null"]![jj] = jNulls.slice();
+                    transactions["null"][jj] = jNulls.slice();
                 }
 
                 // Get the diff
                 this.findMinimumTransactions(keyRoot1, keyRoot2, transactions);
 
                 if (Date.now() > this.endTime) {
-                    this.transactions = {
+                    this.transactionsIndex = {
                         null: {
                             null: [],
                         },
@@ -211,10 +217,10 @@ export class Differ {
         for (i = 0, ilen = this.tree1.orderedNodes.length; i < ilen; i++) {
             for (j = 0, jlen = this.tree2.orderedNodes.length; j < jlen; j++) {
                 if (
-                    this.transactions[i][j] &&
-                    this.transactions[i][j].length > 0
+                    this.transactionsIndex[i][j] &&
+                    this.transactionsIndex[i][j].length > 0
                 ) {
-                    this.transactions[i][j] = this.transactions[i][j].map(
+                    this.transactions[i][j] = this.transactionsIndex[i][j].map(
                         getTransactionFromIndex
                     );
                 }
@@ -230,7 +236,7 @@ export class Differ {
      * @param {treeDiffer.TreeNode} node2 Node from the second tree]
      * @return {number} Cost of the transaction
      */
-    getNodeDistance(node1: TreeNode | null, node2: TreeNode | null) {
+    getNodeDistance(node1: TreeNode, node2: TreeNode) {
         if (node1 === null && node2 === null) {
             return 0;
         }
@@ -257,17 +263,17 @@ export class Differ {
     findMinimumTransactions(
         keyRoot1: TreeNode,
         keyRoot2: TreeNode,
-        transactions: transactionStoreInterface
+        transactions: TransactionsIndex
     ) {
         let i: number,
             j: number,
-            iMinus1: number | null,
-            jMinus1: number | null,
+            iMinus1: number | string,
+            jMinus1: number | string,
             nodeDistance: number,
             transaction: number,
-            remove: (number | string)[],
-            insert: (number | string)[],
-            change: (number | string)[],
+            remove: number[],
+            insert: number[],
+            change: number[],
             orderedNode1: TreeNode,
             orderedNode2: TreeNode;
 
@@ -275,7 +281,7 @@ export class Differ {
             removeCost: number,
             insertCost: number,
             changeCost: number
-        ) {
+        ): number {
             // This used to be written as:
             //  transaction = costs.indexOf( Math.min.apply( null, costs ) )
             // but expanding into two simple comparisons makes it much faster.
@@ -292,11 +298,11 @@ export class Differ {
         }
 
         for (i = keyRoot1.leftmost; i < keyRoot1.index + 1; i++) {
-            iMinus1 = i === keyRoot1.leftmost ? null : i - 1;
+            iMinus1 = i === keyRoot1.leftmost ? "null" : i - 1;
             orderedNode1 = this.tree1.orderedNodes[i];
 
             for (j = keyRoot2.leftmost; j < keyRoot2.index + 1; j++) {
-                jMinus1 = j === keyRoot2.leftmost ? null : j - 1;
+                jMinus1 = j === keyRoot2.leftmost ? "null" : j - 1;
                 orderedNode2 = this.tree2.orderedNodes[j];
 
                 if (
@@ -304,9 +310,9 @@ export class Differ {
                     orderedNode2.leftmost === keyRoot2.leftmost
                 ) {
                     // Previous transactions, leading up to a remove, insert or change
-                    remove = transactions[iMinus1 ?? "null"]![j];
-                    insert = transactions[i][jMinus1 ?? "null"]!;
-                    change = transactions[iMinus1 ?? "null"]![jMinus1 ?? "null"]!;
+                    remove = transactions[iMinus1][j];
+                    insert = transactions[i][jMinus1];
+                    change = transactions[iMinus1][jMinus1];
 
                     nodeDistance = this.getNodeDistance(
                         orderedNode1,
@@ -323,12 +329,12 @@ export class Differ {
                     if (transaction === 0) {
                         // Record a remove
                         (transactions[i][j] = remove.slice()).push(
-                            this.transactionToIndex[i][null]
+                            this.transactionToIndex[i]["null"]
                         );
                     } else if (transaction === 1) {
                         // Record an insert
                         (transactions[i][j] = insert.slice()).push(
-                            this.transactionToIndex[null][j]
+                            this.transactionToIndex["null"][j]
                         );
                     } else {
                         transactions[i][j] = change.slice();
@@ -341,41 +347,41 @@ export class Differ {
                         }
                     }
 
-                    this.transactions[i][j] = transactions[i][j].slice();
+                    this.transactionsIndex[i][j] = transactions[i][j].slice();
                 } else {
                     // Previous transactions, leading up to a remove, insert or change
-                    remove = transactions[iMinus1 ?? "null"]![j];
-                    insert = transactions[i][jMinus1 ?? "null"]!;
+                    remove = transactions[iMinus1][j];
+                    insert = transactions[i][jMinus1];
                     change =
                         transactions[
                             orderedNode1.leftmost - 1 < keyRoot1.leftmost
                                 ? "null"
                                 : orderedNode1.leftmost - 1
-                        ]![
+                        ][
                             orderedNode2.leftmost - 1 < keyRoot2.leftmost
                                 ? "null"
                                 : orderedNode2.leftmost - 1
-                        ]!;
+                        ];
 
                     transaction = getLowestCost(
                         remove.length + this.removeCost,
                         insert.length + this.insertCost,
-                        change.length + this.transactions[i][j].length
+                        change.length + this.transactionsIndex[i][j].length
                     );
                     if (transaction === 0) {
                         // Record a remove
                         (transactions[i][j] = remove.slice()).push(
-                            this.transactionToIndex[i][null]
+                            this.transactionToIndex[i]["null"]
                         );
                     } else if (transaction === 1) {
                         // Record an insert
                         (transactions[i][j] = insert.slice()).push(
-                            this.transactionToIndex[null][j]
+                            this.transactionToIndex["null"][j]
                         );
                     } else {
                         // Record a change
                         transactions[i][j] = change.concat(
-                            this.transactions[i][j]
+                            this.transactionsIndex[i][j]
                         );
                     }
                 }
@@ -393,17 +399,13 @@ export class Differ {
      * @param {number} newTreeLength Number of nodes in the second tree
      * @return {Object} Corresponding nodes
      */
-    // getCorrespondingNodes(
-    //     transactions: transactionStoreInterface,
-    //     oldTreeLength: number,
-    //     newTreeLength: number
-    // ) {
-    //     let i: number,
-    //         j: number,
-    //         rem: number[],
-    //         ins: number[],
-    //         oldToNew: { [key: number]: number } = {},
-    //         newToOld: { [key: number]: number } = {},
+    // getCorrespondingNodes(transactions, oldTreeLength, newTreeLength) {
+    //     let i,
+    //         j,
+    //         rem,
+    //         ins,
+    //         oldToNew = {},
+    //         newToOld = {},
     //         remove = [],
     //         insert = [],
     //         change = {},

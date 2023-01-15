@@ -4,7 +4,7 @@
  * Released under the MIT license
  */
 
-import { TreeNode } from "./treeDiffer.TreeNode";
+import { TreeNode } from "./treeDiffer.TreeNode.js";
 
 interface TreeInterface {
     root: TreeNode;
@@ -95,8 +95,11 @@ export class Tree implements TreeInterface {
         this.orderedNodes = [];
         postOrderNodes(this.root, this.orderedNodes);
 
+        console.log( "this.orderedNodes",this.orderedNodes);
+        
+
         // Store the key roots in order of node index
-        for (leftmost of leftmostsToKeyRoots) {
+        for (leftmost in leftmostsToKeyRoots) {
             this.keyRoots.push(leftmostsToKeyRoots[leftmost]);
         }
         this.keyRoots.sort(function (a, b) {
