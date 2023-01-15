@@ -95,9 +95,6 @@ export class Tree implements TreeInterface {
         this.orderedNodes = [];
         postOrderNodes(this.root, this.orderedNodes);
 
-        console.log( "this.orderedNodes",this.orderedNodes);
-        
-
         // Store the key roots in order of node index
         for (leftmost in leftmostsToKeyRoots) {
             this.keyRoots.push(leftmostsToKeyRoots[leftmost]);
