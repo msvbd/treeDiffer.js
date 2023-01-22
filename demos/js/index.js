@@ -10,7 +10,7 @@
  * 5. Display the diffs
  */
 
-import { treeDiffer } from "../dist/treeDiffer.js";
+import { treeDiffer } from "../../dist/treeDiffer.es.js";
 
 // STEP 1
 
