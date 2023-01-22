@@ -7,13 +7,18 @@
  * Released under the MIT license
  */
 
-import { Differ } from "./treeDiffer.Differ.js";
-import { Tree } from "./treeDiffer.Tree.js";
-import { TreeNode } from "./treeDiffer.TreeNode.js";
+import { Differ } from "./treeDiffer.Differ";
+import { Tree } from "./treeDiffer.Tree";
+import { TreeNode } from "./treeDiffer.TreeNode";
 
-// eslint-disable-next-line no-undef
+// eslint-disable-next-line no-undef 
 export const treeDiffer = {
     "Tree": Tree,
     "TreeNode": TreeNode,
     "Differ": Differ
 };
+export namespace treeDiffer {
+    export type Tree = typeof Tree;
+    export type TreeNode = typeof TreeNode;
+    export type Differ = typeof Differ;
+}

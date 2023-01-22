@@ -15,15 +15,15 @@
  * @constructor
  * @param {Object} node Object representing a node to be wrapped
  */
-export class TreeNode {
+export abstract class TreeNode<NodeType> {
 
-    node: object;
-    children: TreeNode[];
-    parent: TreeNode | null = null;
+    node: NodeType;
+    children: TreeNode<NodeType>[];
+    parent: TreeNode<NodeType> | null = null;
     index: number = 0;
     leftmost: number = 0;
 
-	constructor(node : object) {
+	constructor(node : NodeType) {
 		/**
 		 * @property {Object} node Object representing the wrapped node
 		 */
@@ -50,7 +50,7 @@ export class TreeNode {
 	 *
 	 * @param {treeDiffer.TreeNode} child
 	 */
-	addChild(child : TreeNode) {
+	addChild(child : TreeNode<NodeType>) {
 		this.children.push(child);
 		child.parent = this;
 	}
@@ -63,9 +63,10 @@ export class TreeNode {
 	 * @param {treeDiffer.TreeNode} other The other TreeNode
 	 * @return {boolean} True if equal
 	 */
-	isEqual(...args : any[]) : boolean {
-		return false;
-	}
+	// isEqual(...args : any[]) : boolean {
+	// 	return false;
+	// }
+	abstract isEqual(...args : any[]) : boolean;
 
 	/**
 	 * Get the children of the node that this tree node wraps. How to
@@ -74,7 +75,8 @@ export class TreeNode {
 	 * @method
 	 * @return {Object[]} Children of the wrapped node
 	 */
-	getOriginalNodeChildren() : TreeNode[] {
-		return [];
-	}
+	// getOriginalNodeChildren() : TreeNode<NodeType>[] {
+	// 	return [];
+	// }
+	abstract getOriginalNodeChildren() : NodeType[];
 }

@@ -66,10 +66,10 @@ interface TransactionToIndex {
  * @param {treeDiffer.Tree} tree2 Second tree
  * @param {number} [timeout=1000] Timeout after which to stop diffing
  */
-export class Differ {
+export class Differ<NodeType> {
     endTime: number;
-    tree1: Tree;
-    tree2: Tree;
+    tree1: Tree<NodeType>;
+    tree2: Tree<NodeType>;
     insertCost: number;
     removeCost: number;
     changeCost: number;
@@ -78,7 +78,7 @@ export class Differ {
     indexToTransaction: IndexToTransaction;
     transactionToIndex: TransactionToIndex;
 
-    constructor(tree1: Tree, tree2: Tree, timeout: number) {
+    constructor(tree1: Tree<NodeType>, tree2: Tree<NodeType>, timeout: number = 1000) {
         let i: number,
             ilen: number,
             j: number,
@@ -174,8 +174,8 @@ export class Differ {
             jNulls: number[],
             ii: number,
             jj: number,
-            keyRoot1: TreeNode,
-            keyRoot2: TreeNode,
+            keyRoot1: TreeNode<NodeType>,
+            keyRoot2: TreeNode<NodeType>,
             differ = this;
 
         function getTransactionFromIndex(index: number): Transaction {
@@ -236,7 +236,7 @@ export class Differ {
      * @param {treeDiffer.TreeNode} node2 Node from the second tree]
      * @return {number} Cost of the transaction
      */
-    getNodeDistance(node1: TreeNode, node2: TreeNode) {
+    getNodeDistance(node1: TreeNode<NodeType>, node2: TreeNode<NodeType>) {
         if (node1 === null && node2 === null) {
             return 0;
         }
@@ -261,8 +261,8 @@ export class Differ {
      * @param {Object} transactions Temporary store of transactions between trees
      */
     findMinimumTransactions(
-        keyRoot1: TreeNode,
-        keyRoot2: TreeNode,
+        keyRoot1: TreeNode<NodeType>,
+        keyRoot2: TreeNode<NodeType>,
         transactions: TransactionsIndex
     ) {
         let i: number,
@@ -274,8 +274,8 @@ export class Differ {
             remove: number[],
             insert: number[],
             change: number[],
-            orderedNode1: TreeNode,
-            orderedNode2: TreeNode;
+            orderedNode1: TreeNode<NodeType>,
+            orderedNode2: TreeNode<NodeType>;
 
         function getLowestCost(
             removeCost: number,
