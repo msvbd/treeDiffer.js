@@ -18,6 +18,7 @@ dist
 
 # typescript build
 src/**/*.js
+demos/ts/**/*.js
 
 # npm
 package-lock.json
