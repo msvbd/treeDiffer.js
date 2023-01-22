@@ -2,7 +2,14 @@
 
 Typescipt version of [Tchanders/treeDiffer.js](https://github.com/Tchanders/treeDiffer.js)
 
-Here is original README:
+## changes over original
+
+* uses vite
+* src is in typescript
+* contains js demo and ts demo
+
+---
+**Here is the original README content:**
 
 A JavaScript library for diffing trees in the browser, implementing the algorithm outlined in: <http://epubs.siam.org/doi/abs/10.1137/0218082?journalCode=smjcat>
 
