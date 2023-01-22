@@ -15,3 +15,13 @@ dist
 
 # OS
 .DS_Store
+
+# typescript build
+src/**/*.js
+
+# npm
+package-lock.json
+
+# others
+src_org
+REPORTS.md
